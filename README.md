@@ -7,7 +7,7 @@ Simple Functions for spatial interpolation using machine learning
 
 ```bash
     $ git clone https://github.com/rosskush/skspatial.git
-    $ cd partipy
+    $ cd skspatial
     $ python setup.py install
 ```
 
