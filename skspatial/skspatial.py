@@ -26,8 +26,6 @@ class interp2d():
         self.z = gdf[attribute].values
         self.crs = gdf.crs
 
-
-
         if np.isfinite(ulc[0]) and np.isfinite(lrc[0]):
             self.xmax = lrc[0]
             self.xmin = ulc[0]
@@ -112,3 +110,14 @@ class interp2d():
         print(self.crs)
         sr = flopy.utils.SpatialReference(delr,delc,3,self.xmin,self.ymax)#epsg=self.epsg)
         sr.export_contours(path,cs)
+        plt.close('all')
+
+    def plot_image(self,array,title=''):
+        fig, ax = plt.subplots(figsize=(10,8))
+        plt.imshow(array, cmap='jet',extent=self.extent)
+        plt.colorbar()
+        plt.title(title)
+        fig.tight_layout()
+
+
+
