@@ -118,9 +118,9 @@ class interp2d():
         cs = plt.contour(np.flipud(array),extent=cextent,levels=levels)
         delr = np.ones(int(self.ncol)) * self.res
         delc = np.ones(int(self.nrow)) * self.res
-        print(self.crs)
+        # print(self.crs)
         sr = flopy.utils.SpatialReference(delr,delc,3,self.xmin,self.ymax)#epsg=self.epsg)
-        sr.export_contours(path,cs)
+        sr.export_contours(path,cs,epsg=self.crs)
         plt.close('all')
 
     def plot_image(self,array,title=''):
