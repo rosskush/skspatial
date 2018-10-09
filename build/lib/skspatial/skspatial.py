@@ -88,7 +88,7 @@ class interp2d():
         return karray
 
 
-    def write_raseter(self,array,path):
+    def write_raster(self,array,path):
         if '.' not in path[-4:]:
             path+='.tif'
 
@@ -104,7 +104,15 @@ class interp2d():
 
     def write_contours(self,array,path,base=0,interval=100):
         levels = np.arange(base,array.max(),interval)
-        cs = plt.contour(np.flipud(array),extent=self.extent,levels=levels)
+        # matplotlib contour objects are shifted half a cell to the left and up
+        cextent = np.array(self.extent)
+        cextent[0] = cextent[0] + self.res/2.7007
+        cextent[1] = cextent[1] + self.res/2.7007
+        cextent[2] = cextent[2] - self.res/3.42923
+        cextent[3] = cextent[3] - self.res/3.42923
+
+
+        cs = plt.contour(np.flipud(array),extent=cextent,levels=levels)
         delr = np.ones(int(self.ncol)) * self.res
         delc = np.ones(int(self.nrow)) * self.res
         print(self.crs)
@@ -113,12 +121,12 @@ class interp2d():
         plt.close('all')
 
     def plot_image(self,array,title=''):
-
-        fig, ax = plt.subplots(figsize=(10,8))
+        fig, axes = plt.subplots(figsize=(10,8))
         plt.imshow(array, cmap='jet',extent=self.extent)
         plt.colorbar()
         plt.title(title)
         fig.tight_layout()
+        return axes
 
 
 
