@@ -101,7 +101,7 @@ class interp2d():
 
         new_dataset = rasterio.open(path, 'w', driver='GTiff',
                                     height=array.shape[0], width=array.shape[1], count=1, dtype=array.dtype,
-                                    crs=self.gdf.crs, transform=transform)
+                                    crs=self.gdf.crs, transform=transform, nodata=np.nan)
         new_dataset.write(array, 1)
         new_dataset.close()
 

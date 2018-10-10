@@ -7,7 +7,10 @@ import numpy as np
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
-import flopy
+try:
+    import flopy
+except:
+    pass
 
 class interp2d():
     def __init__(self,gdf,attribute,res=None, ulc=(np.nan,np.nan), lrc=(np.nan,np.nan)):
@@ -98,7 +101,7 @@ class interp2d():
 
         new_dataset = rasterio.open(path, 'w', driver='GTiff',
                                     height=array.shape[0], width=array.shape[1], count=1, dtype=array.dtype,
-                                    crs=self.gdf.crs, transform=transform)
+                                    crs=self.gdf.crs, transform=transform, nodata=np.nan)
         new_dataset.write(array, 1)
         new_dataset.close()
 
@@ -115,9 +118,9 @@ class interp2d():
         cs = plt.contour(np.flipud(array),extent=cextent,levels=levels)
         delr = np.ones(int(self.ncol)) * self.res
         delc = np.ones(int(self.nrow)) * self.res
-        print(self.crs)
+        # print(self.crs)
         sr = flopy.utils.SpatialReference(delr,delc,3,self.xmin,self.ymax)#epsg=self.epsg)
-        sr.export_contours(path,cs)
+        sr.export_contours(path,cs,epsg=self.crs)
         plt.close('all')
 
     def plot_image(self,array,title=''):
