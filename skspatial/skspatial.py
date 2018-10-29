@@ -62,11 +62,11 @@ class interp2d():
         array = np.flipud(np.array(zi))
         return array
 
-    def knn_2D(self, k=15, weights='uniform', algorithm='brute'):
+    def knn_2D(self, k=15, weights='uniform', algorithm='brute', p=2):
         array = self.points_to_grid()
         X = []
         nrow, ncol = array.shape
-        frow, fcol = np.where(np.isfinite(array))
+        frow, fcol = np.where(np.isfinite(array)) # find arra where finite values exist
         for i in range(len(frow)):
             X.append([frow[i], fcol[i]])
         y = array[frow, fcol]
@@ -120,7 +120,7 @@ class interp2d():
         delc = np.ones(int(self.nrow)) * self.res
         # print(self.crs)
         sr = flopy.utils.SpatialReference(delr,delc,3,self.xmin,self.ymax)#epsg=self.epsg)
-        sr.export_contours(path,cs,epsg=self.crs)
+        sr.export_contours(path,cs,epsg=self.crs) #crs_wkt=
         plt.close('all')
 
     def plot_image(self,array,title=''):
