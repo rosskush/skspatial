@@ -22,6 +22,9 @@ class interp2d():
         :param ulc: upper left corner (x,y)
         :param lrc: lower right corner (x,y)
         """
+        if len(gdf) > 1000:
+            raise ValueError('GeoDataFrame must not be larger than 1000 rows, knn is a slow algorithim and can be too much for your computer')  # shorthand for 'raise ValueError()'
+
         self.gdf = gdf
         self.attribute = attribute
         self.x = gdf.geometry.x.values
@@ -43,11 +46,11 @@ class interp2d():
         if np.isfinite(res):
             self.res = res
         else:
-            # if res not passed, then res will be the distance between xmin and xmax / 100
-            self.res = (self.xmax - self.xmin) / 100
+            # if res not passed, then res will be the distance between xmin and xmax / 1000
+            self.res = (self.xmax - self.xmin) / 1000
 
-        self.ncol = np.ceil((self.xmax - self.xmin) / self.res) # delx
-        self.nrow = np.ceil((self.ymax - self.ymin) / self.res) # dely
+        self.ncol = int(np.ceil((self.xmax - self.xmin) / self.res)) # delx
+        self.nrow = int(np.ceil((self.ymax - self.ymin) / self.res))# dely
     # def points_to_grid(x, y, z, delx, dely):
     def points_to_grid(self):
         """
@@ -55,7 +58,7 @@ class interp2d():
         :return: array of size nrow, ncol
         """
 
-        zi, yi, xi = np.histogram2d(self.y, self.x, bins=(int(self.nrow), int(self.ncol)), weights=self.z, normed=False)
+        zi, yi, xi = np.histogram2d(self.y, self.x, bins=(int(self.nrow), int(self.ncol)), weights=self.z, normed=False,range=[[self.xmin,self.xmax],[self.ymin,self.ymax]])
         counts, _, _ = np.histogram2d(self.y, self.x, bins=(int(self.nrow), int(self.ncol)))
         zi = zi / counts
         zi = np.ma.masked_invalid(zi)
@@ -65,8 +68,8 @@ class interp2d():
     def knn_2D(self, k=15, weights='uniform', algorithm='brute', p=2):
         array = self.points_to_grid()
         X = []
-        nrow, ncol = array.shape
-        frow, fcol = np.where(np.isfinite(array)) # find arra where finite values exist
+        # nrow, ncol = array.shape
+        frow, fcol = np.where(np.isfinite(array)) # find areas where finite values exist
         for i in range(len(frow)):
             X.append([frow[i], fcol[i]])
         y = array[frow, fcol]
@@ -78,14 +81,14 @@ class interp2d():
         # print(f'score = {knn.score(train_X,train_y)}')
 
         X_pred = []
-        for r in range(nrow):
-            for c in range(ncol):
+        for r in range(int(self.nrow)):
+            for c in range(int(self.ncol)):
                 X_pred.append([r, c])
         y_pred = knn.predict(X_pred)
-        karray = np.zeros((nrow, ncol))
+        karray = np.zeros((self.nrow, self.ncol))
         i = 0
-        for r in range(nrow):
-            for c in range(ncol):
+        for r in range(int(self.nrow)):
+            for c in range(int(self.ncol)):
                 karray[r, c] = y_pred[i]
                 i += 1
         return karray
