@@ -56,13 +56,19 @@ class interp2d():
         """
 
         :return: array of size nrow, ncol
-        """
 
-        zi, yi, xi = np.histogram2d(self.y, self.x, bins=(int(self.nrow), int(self.ncol)), weights=self.z, normed=False)
-        counts, _, _ = np.histogram2d(self.y, self.x, bins=(int(self.nrow), int(self.ncol)))
+        http://chris35wills.github.io/gridding_data/
+        """
+        hrange = ((self.xmin,self.xmax),(self.ymin,self.ymax))
+        hrange = ((self.ymin,self.ymax),(self.xmin,self.xmax))
+
+        # hrange = [[0,self.ncol],[0,self.nrow]]
+        zi, yi, xi = np.histogram2d(self.y, self.x, bins=(int(self.nrow), int(self.ncol)), weights=self.z, normed=False,range=hrange)
+        counts, _, _ = np.histogram2d(self.y, self.x, bins=(int(self.nrow), int(self.ncol)),range=hrange)
         zi = zi / counts
         zi = np.ma.masked_invalid(zi)
         array = np.flipud(np.array(zi))
+    
         return array
 
     def knn_2D(self, k=15, weights='uniform', algorithm='brute', p=2):
