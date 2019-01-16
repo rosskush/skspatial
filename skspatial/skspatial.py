@@ -59,13 +59,13 @@ class interp2d():
 
         http://chris35wills.github.io/gridding_data/
         """
-        hrange = ((self.xmin,self.xmax),(self.ymin,self.ymax))
-        hrange = ((self.ymin,self.ymax),(self.xmin,self.xmax))
+        hrange = ((self.ymin,self.ymax),(self.xmin,self.xmax)) # any points outside of this will be condisdered outliers and not used
 
-        # hrange = [[0,self.ncol],[0,self.nrow]]
         zi, yi, xi = np.histogram2d(self.y, self.x, bins=(int(self.nrow), int(self.ncol)), weights=self.z, normed=False,range=hrange)
         counts, _, _ = np.histogram2d(self.y, self.x, bins=(int(self.nrow), int(self.ncol)),range=hrange)
-        zi = zi / counts
+        np.seterr(divide='ignore',invalid='ignore') # we're dividing by zero but it's no big deal
+        zi = np.divide(zi,counts)
+        np.seterr(divide=None,invalid=None) # we'll set it back now
         zi = np.ma.masked_invalid(zi)
         array = np.flipud(np.array(zi))
     
