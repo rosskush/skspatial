@@ -13,7 +13,7 @@ except:
     pass
 
 class interp2d():
-    def __init__(self,gdf,attribute,res=None, ulc=(np.nan,np.nan), lrc=(np.nan,np.nan), maxrows = 1000):
+    def __init__(self,gdf,attribute,res=None, ulc=(np.nan,np.nan), lrc=(np.nan,np.nan)):
         """
 
         :param gdf: geopandas GeoDataFrame object, with geometry attribute
@@ -22,8 +22,6 @@ class interp2d():
         :param ulc: upper left corner (x,y)
         :param lrc: lower right corner (x,y)
         """
-        if len(gdf) > maxrows:
-            raise ValueError('GeoDataFrame should not be larger than 1000 rows, knn is a slow algorithim and can be too much for your computer')  # shorthand for 'raise ValueError()'
 
         self.gdf = gdf
         self.attribute = attribute
@@ -71,7 +69,11 @@ class interp2d():
     
         return array
 
-    def knn_2D(self, k=15, weights='uniform', algorithm='brute', p=2):
+    def knn_2D(self, k=15, weights='uniform', algorithm='brute', p=2, maxrows = 1000):
+
+        if len(self.gdf) > maxrows:
+            raise ValueError('GeoDataFrame should not be larger than 1000 rows, knn is a slow algorithim and can be too much for your computer, Change maxrows at own risk')  # shorthand for 'raise ValueError()'
+
         array = self.points_to_grid()
         X = []
         # nrow, ncol = array.shape

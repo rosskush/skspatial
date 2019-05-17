@@ -22,8 +22,6 @@ class interp2d():
         :param ulc: upper left corner (x,y)
         :param lrc: lower right corner (x,y)
         """
-        if len(gdf) > 1000:
-            raise ValueError('GeoDataFrame must not be larger than 1000 rows, knn is a slow algorithim and can be too much for your computer')  # shorthand for 'raise ValueError()'
 
         self.gdf = gdf
         self.attribute = attribute
@@ -63,13 +61,20 @@ class interp2d():
 
         zi, yi, xi = np.histogram2d(self.y, self.x, bins=(int(self.nrow), int(self.ncol)), weights=self.z, normed=False,range=hrange)
         counts, _, _ = np.histogram2d(self.y, self.x, bins=(int(self.nrow), int(self.ncol)),range=hrange)
-        zi = zi / counts
+        np.seterr(divide='ignore',invalid='ignore') # we're dividing by zero but it's no big deal
+        zi = np.divide(zi,counts)
+        np.seterr(divide=None,invalid=None) # we'll set it back now
         zi = np.ma.masked_invalid(zi)
         array = np.flipud(np.array(zi))
     
         return array
 
-    def knn_2D(self, k=15, weights='uniform', algorithm='brute', p=2):
+    def knn_2D(self, k=15, weights='uniform', algorithm='brute', p=2, maxrows = 1000):
+
+        if len(self.gdf) > maxrows:
+            raise ValueError('GeoDataFrame should not be larger than 1000 rows, knn is a slow algorithim and can be too much for your computer, Change maxrows at own risk')  # shorthand for 'raise ValueError()'
+
+
         array = self.points_to_grid()
         X = []
         # nrow, ncol = array.shape
