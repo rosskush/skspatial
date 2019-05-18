@@ -7,6 +7,8 @@ import numpy as np
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
+from scipy import interpolate
+
 try:
     import flopy
 except:
@@ -101,6 +103,20 @@ class interp2d():
                 i += 1
         return karray
 
+    def interpolate_2D(self, method='cubic'):
+        array = self.points_to_grid()
+        x = np.arange(0, array.shape[1])
+        y = np.arange(0, array.shape[0])
+        # mask invalid values
+        array = np.ma.masked_invalid(array)
+        xx, yy = np.meshgrid(x, y)
+        # get only the valid values
+        x1 = xx[~array.mask]
+        y1 = yy[~array.mask]
+        newarr = array[~array.mask]
+        GD1 = interpolate.griddata((x1, y1), newarr.ravel(), (xx, yy), method=method)
+
+        return GD1
 
     def write_raster(self,array,path):
         if '.' not in path[-4:]:
@@ -117,7 +133,7 @@ class interp2d():
         new_dataset.close()
 
     def write_contours(self,array,path,base=0,interval=100):
-        levels = np.arange(base,array.max(),interval)
+        levels = np.arange(base,np.nanmax(array),interval)
         # matplotlib contour objects are shifted half a cell to the left and up
         cextent = np.array(self.extent)
         cextent[0] = cextent[0] + self.res/2.7007
