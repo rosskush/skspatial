@@ -132,8 +132,13 @@ class interp2d():
         new_dataset.write(array, 1)
         new_dataset.close()
 
-    def write_contours(self,array,path,base=0,interval=100):
-        levels = np.arange(base,np.nanmax(array),interval)
+    def write_contours(self,array,path,base=0,interval=100, levels = None):
+        
+        if levels is None:
+            levels = np.arange(base,np.nanmax(array),interval)
+
+
+
         # matplotlib contour objects are shifted half a cell to the left and up
         cextent = np.array(self.extent)
         cextent[0] = cextent[0] + self.res/2.7007
