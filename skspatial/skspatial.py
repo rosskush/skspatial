@@ -102,7 +102,7 @@ class interp2d():
                 i += 1
         return karray
 
-    def interpolate_2D(self, method='linear'):
+    def interpolate_2D(self, method='linear',fill_value=np.nan):
         # use linear or cubic
         array = self.points_to_grid()
         x = np.arange(0, array.shape[1])
@@ -114,7 +114,7 @@ class interp2d():
         x1 = xx[~array.mask]
         y1 = yy[~array.mask]
         newarr = array[~array.mask]
-        GD1 = interpolate.griddata((x1, y1), newarr.ravel(), (xx, yy), method=method)
+        GD1 = interpolate.griddata((x1, y1), newarr.ravel(), (xx, yy), method=method,fill_value=fill_value)
 
         return GD1
 
@@ -171,7 +171,9 @@ if __name__ == '__main__':
     print(len(gdf))
     res = 5280/8 # 8th of a mile grid size
     ml = interp2d(gdf,'z',res=res)
-    array = ml.knn_2D(k=5)
+    array_near = ml.interpolate_2D(method='nearest')
+    array = ml.interpolate_2D(method='linear')
+    array[np.isnan(array)] = array_near[np.isnan(array)]
 
     plt.imshow(array, cmap='jet')
     plt.colorbar()

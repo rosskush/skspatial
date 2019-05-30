@@ -84,11 +84,10 @@ class interp2d():
             X.append([frow[i], fcol[i]])
         y = array[frow, fcol]
 
-        train_X, test_x, train_y, test_y = train_test_split(X, y, test_size=1, random_state=123)
+        train_X, train_y = X, y
 
         knn = KNeighborsRegressor(n_neighbors=k, weights=weights, algorithm=algorithm, p=2)
         knn.fit(train_X, train_y)
-        # print(f'score = {knn.score(train_X,train_y)}')
 
         X_pred = []
         for r in range(int(self.nrow)):
@@ -103,7 +102,8 @@ class interp2d():
                 i += 1
         return karray
 
-    def interpolate_2D(self, method='cubic'):
+    def interpolate_2D(self, method='linear',fill_value=np.nan):
+        # use linear or cubic
         array = self.points_to_grid()
         x = np.arange(0, array.shape[1])
         y = np.arange(0, array.shape[0])
@@ -114,7 +114,7 @@ class interp2d():
         x1 = xx[~array.mask]
         y1 = yy[~array.mask]
         newarr = array[~array.mask]
-        GD1 = interpolate.griddata((x1, y1), newarr.ravel(), (xx, yy), method=method)
+        GD1 = interpolate.griddata((x1, y1), newarr.ravel(), (xx, yy), method=method,fill_value=fill_value)
 
         return GD1
 
@@ -162,6 +162,23 @@ class interp2d():
         plt.title(title)
         fig.tight_layout()
         return axes
+
+if __name__ == '__main__':
+    # for testing only
+    import os
+
+    gdf = gpd.read_file(os.path.join('..','examples','data','inputs_pts.shp'))
+    print(len(gdf))
+    res = 5280/8 # 8th of a mile grid size
+    ml = interp2d(gdf,'z',res=res)
+    array_near = ml.interpolate_2D(method='nearest')
+    array = ml.interpolate_2D(method='linear')
+    array[np.isnan(array)] = array_near[np.isnan(array)]
+
+    plt.imshow(array, cmap='jet')
+    plt.colorbar()
+
+    plt.show()
 
 
 
