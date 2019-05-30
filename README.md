@@ -1,8 +1,8 @@
 
 # skspatial
-Simple functions for geospatial interpolation using sklearn's KNN machine learning algorithm. 
+Simple functions for geospatial interpolation using sklearn's KNN machine learning algorithm and simply scipy interpolation routines ie. "linear", or "cubic". 
 
-Simply load a projected point shapefile with geopandas as a GeoDataFrame, and use skspatial to create interpolated rasters and countor shapefiles that you can bring into you favorite mapping application such as QGIS.  
+Simply load a projected point shapefile with geopandas as a GeoDataFrame, and use skspatial to create interpolated rasters and countor shapefiles that you can bring into your favorite mapping application such as QGIS.  
 
 # Currently in development by:
 
@@ -16,7 +16,7 @@ https://www.intera.com/
 
 ## Installation
 
-`skspatial` supports Python 3 but feel free to try it in python 2 if you don't want to let the past go
+`skspatial` supports Python 3.6
 
 ```bash
     $ git clone https://github.com/rosskush/skspatial.git
