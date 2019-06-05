@@ -1,9 +1,9 @@
 __author__ = 'rosskush'
 
 import geopandas as gpd
+import numpy as np
 import rasterio
 from rasterio.transform import from_origin
-import numpy as np
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
