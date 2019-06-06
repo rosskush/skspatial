@@ -9,10 +9,20 @@ from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 from scipy import interpolate
 
+
+flopy_install = True
+pykrige_install = True
+
+
 try:
     import flopy
 except:
-    pass
+    flopy_install = False
+
+try:
+    from pykrige.ok import OrdinaryKriging
+except:
+    pykrige_install = False
 
 class interp2d():
     def __init__(self,gdf,attribute,res=None, ulc=(np.nan,np.nan), lrc=(np.nan,np.nan)):
@@ -118,6 +128,23 @@ class interp2d():
 
         return GD1
 
+    def OrdinaryKriging_2D(self, n_closest_points=None,variogram_model='linear', verbose=False, coordinates_type='geographic'):
+        # Credit from 'https://github.com/bsmurphy/PyKrige'
+
+        if not pykrige_install:
+            raise ValueError('Pykrige is not installed, try pip install pykrige')
+
+        array = self.points_to_grid()
+        x = np.arange(0, array.shape[1])
+        y = np.arange(0, array.shape[0])
+        OK = OrdinaryKriging(self.x,self.y,self.z, variogram_model=variogram_model, verbose=verbose,
+                     enable_plotting=False, coordinates_type=coordinates_type)
+
+        krige_array, ss = OK.execute('grid', x, y,n_closest_points=n_closest_points)
+
+        return krige_array
+
+
     def write_raster(self,array,path):
         if '.' not in path[-4:]:
             path+='.tif'
@@ -171,13 +198,16 @@ if __name__ == '__main__':
     print(len(gdf))
     res = 5280/8 # 8th of a mile grid size
     ml = interp2d(gdf,'z',res=res)
-    array_near = ml.interpolate_2D(method='nearest')
-    array = ml.interpolate_2D(method='linear')
-    array[np.isnan(array)] = array_near[np.isnan(array)]
 
+    array = ml.OrdinaryKriging_2D(variogram_model='linear', verbose=False, coordinates_type='geographic')
+
+    # array_near = ml.interpolate_2D(method='nearest')
+    # array = ml.interpolate_2D(method='linear')
+    # array[np.isnan(array)] = array_near[np.isnan(array)]
+    #
     plt.imshow(array, cmap='jet')
     plt.colorbar()
-
+    #
     plt.show()
 
 
