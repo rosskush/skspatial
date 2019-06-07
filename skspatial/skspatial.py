@@ -134,20 +134,53 @@ class interp2d():
         if not pykrige_install:
             raise ValueError('Pykrige is not installed, try pip install pykrige')
 
-        array = self.points_to_grid()
-        x = np.arange(0, array.shape[1])
-        y = np.arange(0, array.shape[0])
         OK = OrdinaryKriging(self.x,self.y,self.z, variogram_model=variogram_model, verbose=verbose,
                      enable_plotting=False, coordinates_type=coordinates_type)
+
+        x,y = np.arange(0,self.ncol), np.arange(0,self.nrow)
 
         krige_array, ss = OK.execute('grid', x, y,n_closest_points=n_closest_points)
 
         return krige_array
 
+    def Spline_2D(self):
+        array = self.points_to_grid()
+
+        x,y = np.arange(0,self.ncol), np.arange(0,self.nrow)
+        frow, fcol = np.where(np.isfinite(array))
+        X = []
+        for i in range(len(frow)):
+            X.append([frow[i], fcol[i]])
+        z = array[frow, fcol]
+
+        sarray = interpolate.RectBivariateSpline(frow,fcol,z)
+        print(sarray.shape)
+        return sarray
+
+    def RBF_2D(self):
+        array = self.points_to_grid()
+        print(array.shape)
+
+        x,y = np.arange(0,self.ncol), np.arange(0,self.nrow)
+        frow, fcol = np.where(np.isfinite(array))
+        X = []
+        for i in range(len(frow)):
+            X.append([frow[i], fcol[i]])
+        z = array[frow, fcol]
+
+        rbfi = interpolate.Rbf(frow,fcol,z,kind='cubic')
+        gridx, gridy = np.arange(0,self.ncol), np.arange(0, self.nrow)
+        print(gridx)
+        sarray = rbfi(gridx,gridy)
+
+
+        print(sarray.shape)
+        return sarray
+
 
     def write_raster(self,array,path):
         if '.' not in path[-4:]:
-            path+='.tif'
+            path += '.tif'
 
         # transform = from_origin(gamx.min(), gamy.max(), res, res)
         transform = from_origin(self.xmin, self.ymax, self.res, self.res)
@@ -163,8 +196,6 @@ class interp2d():
         
         if levels is None:
             levels = np.arange(base,np.nanmax(array),interval)
-
-
 
         # matplotlib contour objects are shifted half a cell to the left and up
         cextent = np.array(self.extent)
@@ -199,8 +230,8 @@ if __name__ == '__main__':
     res = 5280/8 # 8th of a mile grid size
     ml = interp2d(gdf,'z',res=res)
 
-    array = ml.OrdinaryKriging_2D(variogram_model='linear', verbose=False, coordinates_type='geographic')
-
+    # array = ml.OrdinaryKriging_2D(variogram_model='linear', verbose=False, coordinates_type='geographic')
+    array = ml.RBF_2D()
     # array_near = ml.interpolate_2D(method='nearest')
     # array = ml.interpolate_2D(method='linear')
     # array[np.isnan(array)] = array_near[np.isnan(array)]
