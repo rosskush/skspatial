@@ -128,7 +128,7 @@ class interp2d():
 
         return GD1
 
-    def OrdinaryKriging_2D(self, n_closest_points=None,variogram_model='linear', verbose=False, coordinates_type='geographic'):
+    def OrdinaryKriging_2D(self, n_closest_points=None,variogram_model='spherical', verbose=False, coordinates_type='geographic',backend='vectorized'):
         # Credit from 'https://github.com/bsmurphy/PyKrige'
 
         if not pykrige_install:
@@ -139,7 +139,9 @@ class interp2d():
 
         x,y = np.arange(0,self.ncol), np.arange(0,self.nrow)
 
-        krige_array, ss = OK.execute('grid', x, y,n_closest_points=n_closest_points)
+        if n_closest_points is not None:
+            backend = 'loop'
+        krige_array, ss = OK.execute('grid', x, y,n_closest_points=n_closest_points,backend=backend)
 
         return krige_array
 
@@ -155,6 +157,7 @@ class interp2d():
 
         sarray = interpolate.RectBivariateSpline(frow,fcol,z)
         print(sarray.shape)
+
         return sarray
 
     def RBF_2D(self):
@@ -226,20 +229,26 @@ if __name__ == '__main__':
     import os
 
     gdf = gpd.read_file(os.path.join('..','examples','data','inputs_pts.shp'))
-    print(len(gdf))
+    gdf = gpd.read_file(os.path.join('..','examples','data','linear_pts.shp'))
+
+    gdf['coords'] = gdf['geometry'].apply(lambda x: x.representative_point().coords[:])
+    gdf['coords'] = [coords[0] for coords in gdf['coords']]
     res = 5280/8 # 8th of a mile grid size
     ml = interp2d(gdf,'z',res=res)
-
-    # array = ml.OrdinaryKriging_2D(variogram_model='linear', verbose=False, coordinates_type='geographic')
-    array = ml.RBF_2D()
+    # array = ml.OrdinaryKriging_2D(variogram_model='linear', verbose=False, coordinates_type='geographic', n_closest_points=None)
+    array = ml.knn_2D(k=5,weights='distance')
+    # array = ml.RBF_2D()
     # array_near = ml.interpolate_2D(method='nearest')
-    # array = ml.interpolate_2D(method='linear')
+    array = ml.interpolate_2D(method='linear')
     # array[np.isnan(array)] = array_near[np.isnan(array)]
-    #
-    plt.imshow(array, cmap='jet')
-    plt.colorbar()
-    #
+
+    ax = ml.plot_image(array,'z value\n')
+    gdf.plot(ax=ax)
+    for idx, row in gdf.iterrows():
+        plt.annotate(s=row['z'], xy=row['coords'], horizontalalignment='left')
+    CS = plt.contour(np.flipud(array),extent=ml.extent)
+    plt.clabel(CS, inline=1, fmt='%1.1f', fontsize=14)
+    ax.set_title('krige')
+
+
     plt.show()
-
-
-
