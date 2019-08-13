@@ -10,14 +10,7 @@ import matplotlib.pyplot as plt
 from scipy import interpolate
 
 
-flopy_install = True
 pykrige_install = True
-
-
-try:
-    import flopy
-except:
-    flopy_install = False
 
 try:
     from pykrige.ok import OrdinaryKriging
@@ -195,26 +188,48 @@ class interp2d():
         new_dataset.write(array, 1)
         new_dataset.close()
 
-    def write_contours(self,array,path,base=0,interval=100, levels = None):
-        
+    def write_contours(self, array,path,base=0,interval=100, levels = None, crs=None):
+        """
+        Create matplotlib contour plot object and export to shapefile.
+        Parameters
+        ----------
+
+        """
+        from shapely.geometry import LineString
+
+        if crs is None:
+            crs = self.crs
+
         if levels is None:
             levels = np.arange(base,np.nanmax(array),interval)
 
-        # matplotlib contour objects are shifted half a cell to the left and up
         cextent = np.array(self.extent)
         cextent[0] = cextent[0] + self.res/2.7007
         cextent[1] = cextent[1] + self.res/2.7007
         cextent[2] = cextent[2] - self.res/3.42923
         cextent[3] = cextent[3] - self.res/3.42923
 
+        contours = plt.contour(np.flipud(array),extent=cextent,levels=levels)
+        if not isinstance(contours, list):
+            contours = [contours]
 
-        cs = plt.contour(np.flipud(array),extent=cextent,levels=levels)
-        delr = np.ones(int(self.ncol)) * self.res
-        delc = np.ones(int(self.nrow)) * self.res
-        # print(self.crs)
-        sr = flopy.utils.SpatialReference(delr,delc,3,self.xmin,self.ymax)#epsg=self.epsg)
-        sr.export_contours(path,cs,epsg=self.crs) #crs_wkt=
+
+        geoms = []
+        level = []
+        for ctr in contours:
+            levels = ctr.levels
+            for i, c in enumerate(ctr.collections):
+                paths = c.get_paths()
+                geoms += [LineString(p.vertices) for p in paths]
+                level += list(np.ones(len(paths)) * levels[i])
+
+        cgdf = gpd.GeoDataFrame({'level':level,'geometry':geoms},geometry='geometry')
+        cgdf.crs = crs
+
+        cgdf.to_file(os.path.join(path))
         plt.close('all')
+
+
 
     def plot_image(self,array,title=''):
         fig, axes = plt.subplots(figsize=(10,8))
@@ -246,7 +261,7 @@ if __name__ == '__main__':
     res = 5280/8 # 8th of a mile grid size
     ml = interp2d(gdf,'z',res=res)
     # array = ml.OrdinaryKriging_2D(variogram_model='linear', verbose=False, coordinates_type='geographic', n_closest_points=None)
-    array = ml.knn_2D(k=5,weights='distance')
+    # array = ml.knn_2D(k=5,weights='distance')
     # array = ml.RBF_2D()
     # array_near = ml.interpolate_2D(method='nearest')
     array = ml.interpolate_2D(method='linear')
@@ -260,5 +275,7 @@ if __name__ == '__main__':
     plt.clabel(CS, inline=1, fmt='%1.1f', fontsize=14)
     ax.set_title('krige')
 
+    ml.write_contours(array,path=os.path.join('..','examples','data','test_contour.shp'),base=0,interval=1, levels = None, crs=None)
 
     plt.show()
+
