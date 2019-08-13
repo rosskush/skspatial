@@ -260,11 +260,11 @@ if __name__ == '__main__':
     gdf['coords'] = [coords[0] for coords in gdf['coords']]
     res = 5280/8 # 8th of a mile grid size
     ml = interp2d(gdf,'z',res=res)
-    # array = ml.OrdinaryKriging_2D(variogram_model='linear', verbose=False, coordinates_type='geographic', n_closest_points=None)
+    array = ml.OrdinaryKriging_2D(variogram_model='linear', verbose=False, coordinates_type='euclidean', n_closest_points=None)
     # array = ml.knn_2D(k=5,weights='distance')
     # array = ml.RBF_2D()
     # array_near = ml.interpolate_2D(method='nearest')
-    array = ml.interpolate_2D(method='linear')
+    # array = ml.interpolate_2D(method='linear')
     # array[np.isnan(array)] = array_near[np.isnan(array)]
 
     ax = ml.plot_image(array,'z value\n')
