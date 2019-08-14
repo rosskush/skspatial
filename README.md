@@ -1,5 +1,5 @@
 
-![Alt text](examles/data/krige.png?raw=true "Title")
+![Alt text](examples/data/krige.png?raw=true "Title")
 
 
 # skspatial
