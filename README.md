@@ -1,4 +1,7 @@
 
+![Alt text](examles/data/krige.png?raw=true "Title")
+
+
 # skspatial
 Simple functions for geospatial interpolation using sklearn's KNN machine learning algorithm, simple scipy interpolation routines ie. "linear", or "cubic" and now pykrige for kriging functions. 
 
