@@ -1,4 +1,4 @@
-__author__ = 'rosskush'
+__author__ = 'Ross Kushnereit'
 
 import geopandas as gpd
 import numpy as np
@@ -9,15 +9,7 @@ from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 from scipy import interpolate
 
-
-flopy_install = True
 pykrige_install = True
-
-
-try:
-    import flopy
-except:
-    flopy_install = False
 
 try:
     from pykrige.ok import OrdinaryKriging
@@ -115,8 +107,8 @@ class interp2d():
     def interpolate_2D(self, method='linear',fill_value=np.nan):
         # use linear or cubic
         array = self.points_to_grid()
-        x = np.arange(0, array.shape[1])
-        y = np.arange(0, array.shape[0])
+        x = np.arange(0, self.ncol)
+        y = np.arange(0, self.nrow)
         # mask invalid values
         array = np.ma.masked_invalid(array)
         xx, yy = np.meshgrid(x, y)
@@ -128,26 +120,79 @@ class interp2d():
 
         return GD1
 
-    def OrdinaryKriging_2D(self, n_closest_points=None,variogram_model='linear', verbose=False, coordinates_type='geographic'):
+    def OrdinaryKriging_2D(self, n_closest_points=None,variogram_model='linear', verbose=False, coordinates_type='euclidean',backend='vectorized'):
         # Credit from 'https://github.com/bsmurphy/PyKrige'
 
         if not pykrige_install:
             raise ValueError('Pykrige is not installed, try pip install pykrige')
 
-        array = self.points_to_grid()
-        x = np.arange(0, array.shape[1])
-        y = np.arange(0, array.shape[0])
         OK = OrdinaryKriging(self.x,self.y,self.z, variogram_model=variogram_model, verbose=verbose,
                      enable_plotting=False, coordinates_type=coordinates_type)
 
-        krige_array, ss = OK.execute('grid', x, y,n_closest_points=n_closest_points)
+        x,y = np.arange(0,self.ncol), np.arange(0,self.nrow)
+
+        xpts = np.arange(self.xmin + self.res/2,self.xmax+self.res/2, self.res)
+        ypts = np.arange(self.ymin + self.res/2,self.ymax+self.res/2, self.res)
+        ypts = ypts[::-1]
+
+
+        xp, yp = [],[]
+        for yi in ypts:
+            for xi in xpts:
+                xp.append(xi)
+                yp.append(yi)
+
+
+        if n_closest_points is not None:
+            backend = 'loop'
+        # krige_array, ss = OK.execute('points', x, y,n_closest_points=n_closest_points,backend=backend)
+        krige_array, ss = OK.execute('points', xp, yp,n_closest_points=n_closest_points,backend=backend)
+
+        krige_array = np.reshape(krige_array,(self.nrow,self.ncol))
+        # print(krige_array.shape)
+
 
         return krige_array
+
+    def Spline_2D(self):
+        array = self.points_to_grid()
+
+        x,y = np.arange(0,self.ncol), np.arange(0,self.nrow)
+        frow, fcol = np.where(np.isfinite(array))
+        X = []
+        for i in range(len(frow)):
+            X.append([frow[i], fcol[i]])
+        z = array[frow, fcol]
+
+        sarray = interpolate.RectBivariateSpline(frow,fcol,z)
+        print(sarray.shape)
+
+        return sarray
+
+    def RBF_2D(self):
+        array = self.points_to_grid()
+        print(array.shape)
+
+        x,y = np.arange(0,self.ncol), np.arange(0,self.nrow)
+        frow, fcol = np.where(np.isfinite(array))
+        X = []
+        for i in range(len(frow)):
+            X.append([frow[i], fcol[i]])
+        z = array[frow, fcol]
+
+        rbfi = interpolate.Rbf(frow,fcol,z,kind='cubic')
+        gridx, gridy = np.arange(0,self.ncol), np.arange(0, self.nrow)
+        print(gridx)
+        sarray = rbfi(gridx,gridy)
+
+
+        print(sarray.shape)
+        return sarray
 
 
     def write_raster(self,array,path):
         if '.' not in path[-4:]:
-            path+='.tif'
+            path += '.tif'
 
         # transform = from_origin(gamx.min(), gamy.max(), res, res)
         transform = from_origin(self.xmin, self.ymax, self.res, self.res)
@@ -159,28 +204,48 @@ class interp2d():
         new_dataset.write(array, 1)
         new_dataset.close()
 
-    def write_contours(self,array,path,base=0,interval=100, levels = None):
-        
+    def write_contours(self, array,path,base=0,interval=100, levels = None, crs=None):
+        """
+        Create matplotlib contour plot object and export to shapefile.
+        Parameters
+        ----------
+
+        """
+        from shapely.geometry import LineString
+
+        if crs is None:
+            crs = self.crs
+
         if levels is None:
             levels = np.arange(base,np.nanmax(array),interval)
 
-
-
-        # matplotlib contour objects are shifted half a cell to the left and up
         cextent = np.array(self.extent)
         cextent[0] = cextent[0] + self.res/2.7007
         cextent[1] = cextent[1] + self.res/2.7007
         cextent[2] = cextent[2] - self.res/3.42923
         cextent[3] = cextent[3] - self.res/3.42923
 
+        contours = plt.contour(np.flipud(array),extent=cextent,levels=levels)
+        if not isinstance(contours, list):
+            contours = [contours]
 
-        cs = plt.contour(np.flipud(array),extent=cextent,levels=levels)
-        delr = np.ones(int(self.ncol)) * self.res
-        delc = np.ones(int(self.nrow)) * self.res
-        # print(self.crs)
-        sr = flopy.utils.SpatialReference(delr,delc,3,self.xmin,self.ymax)#epsg=self.epsg)
-        sr.export_contours(path,cs,epsg=self.crs) #crs_wkt=
+
+        geoms = []
+        level = []
+        for ctr in contours:
+            levels = ctr.levels
+            for i, c in enumerate(ctr.collections):
+                paths = c.get_paths()
+                geoms += [LineString(p.vertices) for p in paths]
+                level += list(np.ones(len(paths)) * levels[i])
+
+        cgdf = gpd.GeoDataFrame({'level':level,'geometry':geoms},geometry='geometry')
+        cgdf.crs = crs
+
+        cgdf.to_file(os.path.join(path))
         plt.close('all')
+
+
 
     def plot_image(self,array,title=''):
         fig, axes = plt.subplots(figsize=(10,8))
@@ -190,25 +255,40 @@ class interp2d():
         fig.tight_layout()
         return axes
 
+
+
 if __name__ == '__main__':
     # for testing only
     import os
 
     gdf = gpd.read_file(os.path.join('..','examples','data','inputs_pts.shp'))
-    print(len(gdf))
+    # gdf = gpd.read_file(os.path.join('..','examples','data','linear_pts.shp'))
+
+    gdf['coords'] = gdf['geometry'].apply(lambda x: x.representative_point().coords[:])
+    # gdf = gdf.to_crs('+proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +no_defs')
+    gdf['coords'] = [coords[0] for coords in gdf['coords']]
     res = 5280/8 # 8th of a mile grid size
+    # res = .001
     ml = interp2d(gdf,'z',res=res)
+    array = ml.OrdinaryKriging_2D(variogram_model='linear', verbose=False, n_closest_points=None, coordinates_type='euclidean')
 
-    array = ml.OrdinaryKriging_2D(variogram_model='linear', verbose=False, coordinates_type='geographic')
-
+    # array = ml.knn_2D(k=5,weights='uniform')
+    # array = ml.RBF_2D()
     # array_near = ml.interpolate_2D(method='nearest')
     # array = ml.interpolate_2D(method='linear')
     # array[np.isnan(array)] = array_near[np.isnan(array)]
-    #
-    plt.imshow(array, cmap='jet')
-    plt.colorbar()
-    #
+
+    ax = ml.plot_image(array,'z value\n')
+    gdf.plot(ax=ax)
+    for idx, row in gdf.iterrows():
+        plt.annotate(s=row['z'], xy=row['coords'], horizontalalignment='left')
+    CS = plt.contour(np.flipud(array),extent=ml.extent)
+    plt.clabel(CS, inline=1, fmt='%1.1f', fontsize=14)
+    ax.set_title('krige')
+
+    # ml.write_contours(array,path=os.path.join('..','examples','data','test_contour.shp'),base=0,interval=1, levels = None, crs=None)
+
+
+
     plt.show()
-
-
 

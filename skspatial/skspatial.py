@@ -1,4 +1,4 @@
-__author__ = 'rosskush'
+__author__ = 'Ross Kushnereit'
 
 import geopandas as gpd
 import numpy as np
@@ -9,6 +9,7 @@ from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 from scipy import interpolate
 
+# from skspatial import utils
 
 pykrige_install = True
 
@@ -108,8 +109,8 @@ class interp2d():
     def interpolate_2D(self, method='linear',fill_value=np.nan):
         # use linear or cubic
         array = self.points_to_grid()
-        x = np.arange(0, array.shape[1])
-        y = np.arange(0, array.shape[0])
+        x = np.arange(0, self.ncol)
+        y = np.arange(0, self.nrow)
         # mask invalid values
         array = np.ma.masked_invalid(array)
         xx, yy = np.meshgrid(x, y)
@@ -121,7 +122,7 @@ class interp2d():
 
         return GD1
 
-    def OrdinaryKriging_2D(self, n_closest_points=None,variogram_model='spherical', verbose=False, coordinates_type='geographic',backend='vectorized'):
+    def OrdinaryKriging_2D(self, n_closest_points=None,variogram_model='linear', verbose=False, coordinates_type='euclidean',backend='vectorized'):
         # Credit from 'https://github.com/bsmurphy/PyKrige'
 
         if not pykrige_install:
@@ -132,9 +133,26 @@ class interp2d():
 
         x,y = np.arange(0,self.ncol), np.arange(0,self.nrow)
 
+        xpts = np.arange(self.xmin + self.res/2,self.xmax+self.res/2, self.res)
+        ypts = np.arange(self.ymin + self.res/2,self.ymax+self.res/2, self.res)
+        ypts = ypts[::-1]
+
+
+        xp, yp = [],[]
+        for yi in ypts:
+            for xi in xpts:
+                xp.append(xi)
+                yp.append(yi)
+
+
         if n_closest_points is not None:
             backend = 'loop'
-        krige_array, ss = OK.execute('grid', x, y,n_closest_points=n_closest_points,backend=backend)
+        # krige_array, ss = OK.execute('points', x, y,n_closest_points=n_closest_points,backend=backend)
+        krige_array, ss = OK.execute('points', xp, yp,n_closest_points=n_closest_points,backend=backend)
+
+        krige_array = np.reshape(krige_array,(self.nrow,self.ncol))
+        # print(krige_array.shape)
+
 
         return krige_array
 
@@ -239,29 +257,24 @@ class interp2d():
         fig.tight_layout()
         return axes
 
-def extract_raster(raster_path,xy):
-    # raster_path : path to raster
-    # xy: list or array of tuples of x,y i.e [(x1,y1),(x2,y2)...(xn,yn)]
-    # returns list of length xy or sampled values
-    raster = rasterio.open(raster_path)
-    values = list(raster.sample(xy)) # convert generator object to list
 
-    values = [item[0] for item in values] # list comprehension to get the value
-    return values
 
 if __name__ == '__main__':
     # for testing only
     import os
 
     gdf = gpd.read_file(os.path.join('..','examples','data','inputs_pts.shp'))
-    gdf = gpd.read_file(os.path.join('..','examples','data','linear_pts.shp'))
+    # gdf = gpd.read_file(os.path.join('..','examples','data','linear_pts.shp'))
 
     gdf['coords'] = gdf['geometry'].apply(lambda x: x.representative_point().coords[:])
+    # gdf = gdf.to_crs('+proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +no_defs')
     gdf['coords'] = [coords[0] for coords in gdf['coords']]
     res = 5280/8 # 8th of a mile grid size
+    # res = .001
     ml = interp2d(gdf,'z',res=res)
-    array = ml.OrdinaryKriging_2D(variogram_model='linear', verbose=False, coordinates_type='euclidean', n_closest_points=None)
-    # array = ml.knn_2D(k=5,weights='distance')
+    array = ml.OrdinaryKriging_2D(variogram_model='linear', verbose=False, n_closest_points=None, coordinates_type='euclidean')
+
+    # array = ml.knn_2D(k=5,weights='uniform')
     # array = ml.RBF_2D()
     # array_near = ml.interpolate_2D(method='nearest')
     # array = ml.interpolate_2D(method='linear')
@@ -275,7 +288,11 @@ if __name__ == '__main__':
     plt.clabel(CS, inline=1, fmt='%1.1f', fontsize=14)
     ax.set_title('krige')
 
-    ml.write_contours(array,path=os.path.join('..','examples','data','test_contour.shp'),base=0,interval=1, levels = None, crs=None)
+    plt.savefig(os.path.join('..','examples','data','krige.png'))
+
+    # ml.write_contours(array,path=os.path.join('..','examples','data','test_contour.shp'),base=0,interval=1, levels = None, crs=None)
+
+
 
     plt.show()
 
