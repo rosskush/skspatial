@@ -8,7 +8,7 @@ from sklearn.neighbors import KNeighborsRegressor
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 from scipy import interpolate
-
+import os
 # from skspatial import utils
 
 pykrige_install = True
