@@ -247,6 +247,46 @@ class interp2d():
         cgdf.to_file(os.path.join(path))
         plt.close('all')
 
+    def get_contours(self, array,base=0,interval=100, levels = None, crs=None):
+        """
+        Create matplotlib contour plot object and return GeoDataFrame.
+        Parameters
+        ----------
+
+        """
+        from shapely.geometry import LineString
+
+        if crs is None:
+            crs = self.crs
+
+        if levels is None:
+            levels = np.arange(base,np.nanmax(array),interval)
+
+        cextent = np.array(self.extent)
+        cextent[0] = cextent[0] + self.res/2.7007
+        cextent[1] = cextent[1] + self.res/2.7007
+        cextent[2] = cextent[2] - self.res/3.42923
+        cextent[3] = cextent[3] - self.res/3.42923
+
+        contours = plt.contour(np.flipud(array),extent=cextent,levels=levels)
+        if not isinstance(contours, list):
+            contours = [contours]
+
+
+        geoms = []
+        level = []
+        for ctr in contours:
+            levels = ctr.levels
+            for i, c in enumerate(ctr.collections):
+                paths = c.get_paths()
+                geoms += [LineString(p.vertices) for p in paths]
+                level += list(np.ones(len(paths)) * levels[i])
+
+        cgdf = gpd.GeoDataFrame({'level':level,'geometry':geoms},geometry='geometry')
+        cgdf.crs = crs
+
+        return cgdf
+
 
 
     def plot_image(self,array,title=''):
@@ -288,7 +328,12 @@ if __name__ == '__main__':
     plt.clabel(CS, inline=1, fmt='%1.1f', fontsize=14)
     ax.set_title('krige')
 
-    plt.savefig(os.path.join('..','examples','data','krige.png'))
+    fig, ax = plt.subplots(figsize=(8,6))
+    cgdf = ml.get_contours(array,base=0, interval=5)
+
+    cgdf.plot(ax=ax)
+
+    # plt.savefig(os.path.join('..','examples','data','krige.png'))
 
     # ml.write_contours(array,path=os.path.join('..','examples','data','test_contour.shp'),base=0,interval=1, levels = None, crs=None)
 
