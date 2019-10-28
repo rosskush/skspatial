@@ -206,6 +206,8 @@ class interp2d():
         new_dataset.write(array, 1)
         new_dataset.close()
 
+        return new_dataset
+
     def write_contours(self, array,path,base=0,interval=100, levels = None, crs=None):
         """
         Create matplotlib contour plot object and export to shapefile.
@@ -279,8 +281,9 @@ class interp2d():
             levels = ctr.levels
             for i, c in enumerate(ctr.collections):
                 paths = c.get_paths()
-                geoms += [LineString(p.vertices) for p in paths]
-                level += list(np.ones(len(paths)) * levels[i])
+                if len(paths) >0:
+                    geoms += [LineString(p.vertices) for p in paths]
+                    level += list(np.ones(len(paths)) * levels[i])
 
         cgdf = gpd.GeoDataFrame({'level':level,'geometry':geoms},geometry='geometry')
         cgdf.crs = crs
@@ -306,12 +309,20 @@ if __name__ == '__main__':
     gdf = gpd.read_file(os.path.join('..','examples','data','inputs_pts.shp'))
     # gdf = gpd.read_file(os.path.join('..','examples','data','linear_pts.shp'))
 
+
     gdf['coords'] = gdf['geometry'].apply(lambda x: x.representative_point().coords[:])
     # gdf = gdf.to_crs('+proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +no_defs')
     gdf['coords'] = [coords[0] for coords in gdf['coords']]
     res = 5280/8 # 8th of a mile grid size
     # res = .001
     ml = interp2d(gdf,'z',res=res)
+
+    # gdf = gpd.read_file(os.path.join('S:/','AUS','PosGCD_master','GWAP_2019_analysis','GIS','output_shapefiles','S9_WLs','S9_Wls_2011_Aq5.shp'))
+    # ml = interp2d(gdf,'WL_Res',res=res)
+    # gdf['coords'] = gdf['geometry'].apply(lambda x: x.representative_point().coords[:])
+    # gdf = gdf.to_crs('+proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +no_defs')
+    # gdf['coords'] = [coords[0] for coords in gdf['coords']]
+
     array = ml.OrdinaryKriging_2D(variogram_model='linear', verbose=False, n_closest_points=None, coordinates_type='euclidean')
 
     # array = ml.knn_2D(k=5,weights='uniform')
@@ -324,11 +335,18 @@ if __name__ == '__main__':
     gdf.plot(ax=ax)
     for idx, row in gdf.iterrows():
         plt.annotate(s=row['z'], xy=row['coords'], horizontalalignment='left')
+        # plt.annotate(s=row['WL_Res'], xy=row['coords'], horizontalalignment='left')
+
     CS = plt.contour(np.flipud(array),extent=ml.extent)
     plt.clabel(CS, inline=1, fmt='%1.1f', fontsize=14)
     ax.set_title('krige')
 
-    plt.savefig(os.path.join('..','examples','data','krige.png'))
+    fig, ax = plt.subplots(figsize=(8,6))
+    # cgdf = ml.get_contours(array,base=0, interval=5)
+
+    # cgdf.plot(ax=ax)
+
+    # plt.savefig(os.path.join('..','examples','data','krige.png'))
 
     # ml.write_contours(array,path=os.path.join('..','examples','data','test_contour.shp'),base=0,interval=1, levels = None, crs=None)
 
