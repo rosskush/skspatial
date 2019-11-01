@@ -1,6 +1,8 @@
 import json
 import geopandas as gdf
 import rasterio
+import numpy as np
+import os
 
 def getFeatures(gdf):
     import json
