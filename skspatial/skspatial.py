@@ -240,9 +240,11 @@ class interp2d():
             levels = ctr.levels
             for i, c in enumerate(ctr.collections):
                 paths = c.get_paths()
-                if len(paths) >0:
-                    geoms += [LineString(p.vertices) for p in paths]
-                    level += list(np.ones(len(paths)) * levels[i])
+                for il, p in enumerate(paths):
+                    if len(p.vertices) > 1:
+                        geoms.append(LineString(p.vertices))
+                        level.append(levels[i])
+
 
         cgdf = gpd.GeoDataFrame({'level':level,'geometry':geoms},geometry='geometry')
         cgdf.crs = crs
@@ -282,9 +284,10 @@ class interp2d():
             levels = ctr.levels
             for i, c in enumerate(ctr.collections):
                 paths = c.get_paths()
-                if len(paths) >0:
-                    geoms += [LineString(p.vertices) for p in paths]
-                    level += list(np.ones(len(paths)) * levels[i])
+                for il, p in enumerate(paths):
+                    if len(p.vertices) > 1:
+                        geoms.append(LineString(p.vertices))
+                        level.append(levels[i])
 
         cgdf = gpd.GeoDataFrame({'level':level,'geometry':geoms},geometry='geometry')
         cgdf.crs = crs
