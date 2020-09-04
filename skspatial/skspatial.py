@@ -273,6 +273,7 @@ class interp2d():
         cextent[2] = cextent[2] - self.res/3.42923
         cextent[3] = cextent[3] - self.res/3.42923
 
+        _fig, _ax = plt.subplots()
         contours = plt.contour(np.flipud(array),extent=cextent,levels=levels)
         if not isinstance(contours, list):
             contours = [contours]
@@ -292,6 +293,7 @@ class interp2d():
         cgdf = gpd.GeoDataFrame({'level':level,'geometry':geoms},geometry='geometry')
         cgdf.crs = crs
 
+        plt.close(_fig)
         return cgdf
 
 

@@ -240,8 +240,11 @@ class interp2d():
             levels = ctr.levels
             for i, c in enumerate(ctr.collections):
                 paths = c.get_paths()
-                geoms += [LineString(p.vertices) for p in paths]
-                level += list(np.ones(len(paths)) * levels[i])
+                for il, p in enumerate(paths):
+                    if len(p.vertices) > 1:
+                        geoms.append(LineString(p.vertices))
+                        level.append(levels[i])
+
 
         cgdf = gpd.GeoDataFrame({'level':level,'geometry':geoms},geometry='geometry')
         cgdf.crs = crs
@@ -270,6 +273,7 @@ class interp2d():
         cextent[2] = cextent[2] - self.res/3.42923
         cextent[3] = cextent[3] - self.res/3.42923
 
+        _fig, _ax = plt.subplots()
         contours = plt.contour(np.flipud(array),extent=cextent,levels=levels)
         if not isinstance(contours, list):
             contours = [contours]
@@ -281,13 +285,15 @@ class interp2d():
             levels = ctr.levels
             for i, c in enumerate(ctr.collections):
                 paths = c.get_paths()
-                if len(paths) >0:
-                    geoms += [LineString(p.vertices) for p in paths]
-                    level += list(np.ones(len(paths)) * levels[i])
+                for il, p in enumerate(paths):
+                    if len(p.vertices) > 1:
+                        geoms.append(LineString(p.vertices))
+                        level.append(levels[i])
 
         cgdf = gpd.GeoDataFrame({'level':level,'geometry':geoms},geometry='geometry')
         cgdf.crs = crs
 
+        plt.close(_fig)
         return cgdf
 
 
