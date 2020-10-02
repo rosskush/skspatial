@@ -8,9 +8,21 @@ def extract_raster(raster_path,xy):
     # xy: list or array of tuples of x,y i.e [(x1,y1),(x2,y2)...(xn,yn)]
     # returns list of length xy or sampled values
     raster = rasterio.open(raster_path)
-    values = list(raster.sample(xy)) # convert generator object to list
+    nodata = raster.nodata
 
-    values = [item[0] for item in values] # list comprehension to get the value
+    values = []
+    for i, xyi in enumerate(xy):
+        try:
+            value = list(raster.sample([xyi]))[0][0]
+        except:
+            value = np.nan
+
+        if value == nodata: # if value is nodata from rasdter, set to nan
+            value = np.nan
+
+        values.append(value)
+
+    # values = [item[0] for item in values] # list comprehension to get the value
     return values
 
 def raster2pts(rasobj, column='Value'):
