@@ -14,5 +14,5 @@ from .version import __version__
 
 # imports
 # from . import utils
-from .utils import *
+# from .utils import *
 from .skspatial import *
