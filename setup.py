@@ -8,5 +8,6 @@ setup(name='skspatial',
       author='Ross Kushnereit',
       author_email='ross.kush@gmail.com',
       url='intera.com',
-      packages=['skspatial'],
+      packages=['skspatial',
+      'skspatial.utils'],
      )
