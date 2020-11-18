@@ -3,6 +3,7 @@ import geopandas as gp
 from shapely.geometry import Point
 
 
+
 def extract_raster(raster_path,xy):
     # raster_path : path to raster
     # xy: list or array of tuples of x,y i.e [(x1,y1),(x2,y2)...(xn,yn)]
@@ -23,6 +24,16 @@ def extract_raster(raster_path,xy):
         values.append(value)
 
     # values = [item[0] for item in values] # list comprehension to get the value
+    return values
+
+
+def extract_raster2gdf(raster_path,gdf):
+    # raster_path : path to raster
+    # gdf: Geo Pandas GeoDataFrame with coordinates stored in the 'geometry' attribute
+    # returns list of length gdf or sampled values
+    xy = [(dfrow['geometry'].x, dfrow['geometry'].y) for i, dfrow in gdf.iterrows()]
+    values = extract_raster(raster_path, xy)
+
     return values
 
 def raster2pts(rasobj, column='Value'):
