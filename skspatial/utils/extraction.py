@@ -1,7 +1,7 @@
 import rasterio
 import geopandas as gp
 from shapely.geometry import Point
-
+import numpy as np
 
 
 def extract_raster(raster_path,xy):
