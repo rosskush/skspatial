@@ -2,7 +2,7 @@ import rasterio
 import geopandas as gp
 from shapely.geometry import Point
 import numpy as np
-
+import geopandas as gpd
 
 def extract_raster(raster_path,xy):
     # raster_path : path to raster
@@ -56,3 +56,9 @@ def raster2pts(rasobj, column='Value'):
     gdf = gpd.GeoDataFrame(data,columns=[column,'geometry'],crs=crs)
 
     return gdf
+
+def get_gdf_extent(gdf):
+    bounds = gdf.bounds
+    ulc = (bounds['minx'].min(),bounds['maxy'].max())
+    lrc = (bounds['maxx'].max(),bounds['miny'].min())
+    return ulc, lrc
